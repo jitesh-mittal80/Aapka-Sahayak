@@ -11,11 +11,13 @@ async function findOrCreateCitizen({ name, phone, language }) {
     return existingCitizen;
   }
 
-  const newCitizen = await prisma.citizen.create({
-    data: { name, phone, language },
+  return prisma.citizen.create({
+    data: {
+      name,
+      phone,
+      language,
+    },
   });
-
-  return newCitizen;
 }
 
 module.exports = { findOrCreateCitizen };
