@@ -44,3 +44,48 @@ export const createComplaint = async (req, res) => {
     });
   }
 };
+
+export const updateComplaintStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!status) {
+      return res.status(400).json({
+        success: false,
+        message: "Status is required",
+      });
+    }
+
+    // ✅ STEP 1: Check if complaint exists
+    const existingComplaint = await prisma.complaint.findUnique({
+      where: { id },
+    });
+
+    if (!existingComplaint) {
+      return res.status(404).json({
+        success: false,
+        message: "Complaint not found",
+      });
+    }
+
+    // ✅ STEP 2: Update status
+    const updatedComplaint = await prisma.complaint.update({
+      where: { id },
+      data: { status },
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Complaint status updated",
+      complaint: updatedComplaint,
+    });
+  } catch (error) {
+    console.error("Update Status Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
