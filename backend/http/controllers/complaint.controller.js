@@ -89,3 +89,46 @@ export const updateComplaintStatus = async (req, res) => {
     });
   }
 };
+
+import { mapAIResponseToStatus } from "../services/aiVerification.service.js";
+
+export const aiVerifyComplaint = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { aiResponse } = req.body;
+
+    if (!aiResponse) {
+      return res.status(400).json({
+        success: false,
+        message: "AI response is required",
+      });
+    }
+
+    const newStatus = mapAIResponseToStatus(aiResponse);
+
+    if (!newStatus) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid AI response",
+      });
+    }
+
+    const updatedComplaint = await prisma.complaint.update({
+      where: { id },
+      data: { status: newStatus },
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "AI verification processed",
+      complaint: updatedComplaint,
+    });
+  } catch (error) {
+    console.error("AI Verification Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "AI verification failed",
+    });
+  }
+};

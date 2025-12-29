@@ -1,4 +1,5 @@
 import express from "express";
+import { aiVerifyComplaint } from "../controllers/complaint.controller.js";
 import {
   createComplaint,
   updateComplaintStatus,
@@ -11,5 +12,7 @@ router.post("/", createComplaint);
 
 // New
 router.patch("/:id/status", updateComplaintStatus);
+router.post("/:id/ai-verify", aiVerifyComplaint);
+
 
 export default router;
