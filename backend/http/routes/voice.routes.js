@@ -2,7 +2,7 @@ import express from "express";
 import twilio from "twilio";
 import { PrismaClient } from "@prisma/client";
 import { analyzeComplaint } from "../../http/services/aiUnderstanding.service.js";
-import { ALLOWED_CATEGORIES } from "../constants/complaintCategories.js";
+import { ALLOWED_CATEGORIES } from "../../constants/complaintCategories.js";
 
 const router = express.Router();
 const VoiceResponse = twilio.twiml.VoiceResponse;
