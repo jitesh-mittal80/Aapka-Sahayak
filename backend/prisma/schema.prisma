@@ -23,30 +23,23 @@ model Citizen {
 }
 
 model Complaint {
-  id                String @id @default(uuid())
-  complaintNumber   String @unique
-  citizenId         String
-  category          String
-  description       String
-  status            ComplaintStatus @default(OPEN)
-  parentComplaintId String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String          @id @default(uuid())
+  description String
+  category    String
+  status      ComplaintStatus @default(OPEN)
+  citizenId   String
+  createdAt   DateTime        @default(now())
 
   citizen Citizen @relation(fields: [citizenId], references: [id])
-
-  @@index([citizenId])
-  @@index([status])
 }
 
 model CallLog {
-  id        String @id @default(uuid())
-  phone     String
-  direction CallDirection
+  id         String        @id @default(uuid())
+  phone      String
+  direction  CallDirection
   transcript String?
-  outcome   String?
-  createdAt DateTime @default(now())
+  outcome    String?
+  createdAt  DateTime      @default(now())
 }
 
 enum ComplaintStatus {
@@ -60,5 +53,3 @@ enum CallDirection {
   INBOUND
   OUTBOUND
 }
-
-
