@@ -24,12 +24,19 @@ export const createComplaint = async (req, res) => {
     // 3️⃣ Create complaint
     const complaint = await prisma.complaint.create({
       data: {
-        description,
-        category,
-        citizenId: citizen.id, // ✅ UUID string
+        description: speechText,
+        category: "UNCLASSIFIED",
+        citizenId: citizen.id,
       },
     });
+    const aiResult = await analyzeComplaint(speechText);
 
+    await prisma.complaint.update({
+      where: { id: complaint.id },
+      data: {
+        category: aiResult.category,
+      },
+    });
     // 4️⃣ Response
     return res.status(201).json({
       success: true,
