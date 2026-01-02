@@ -4,6 +4,7 @@ import {
   createComplaint,
   updateComplaintStatus,
 } from "../controllers/complaint.controller.js";
+import { markComplaintResolved } from "../controllers/complaint.controller.js";
 
 const router = express.Router();
 
@@ -14,5 +15,6 @@ router.post("/", createComplaint);
 router.patch("/:id/status", updateComplaintStatus);
 router.post("/:id/ai-verify", aiVerifyComplaint);
 
+router.post("/:id/mark-resolved", markComplaintResolved);
 
 export default router;

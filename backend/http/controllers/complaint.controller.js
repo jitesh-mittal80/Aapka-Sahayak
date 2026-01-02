@@ -139,3 +139,15 @@ export const aiVerifyComplaint = async (req, res) => {
     });
   }
 };
+
+import { markResolvedAndCallCitizen } from "../services/complaint.service.js";
+
+export async function markComplaintResolved(req, res) {
+  const { id } = req.params;
+
+  await markResolvedAndCallCitizen(id);
+
+  res.json({
+    message: "Complaint marked resolved. Outbound verification call triggered.",
+  });
+}

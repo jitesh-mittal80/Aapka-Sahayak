@@ -23,33 +23,54 @@ model Citizen {
 }
 
 model Complaint {
-  id          String          @id @default(uuid())
+  id String @id @default(uuid())
   description String
-  category    String
+  category ComplaintCategory?
   status      ComplaintStatus @default(OPEN)
-  citizenId   String
-  createdAt   DateTime        @default(now())
 
-  citizen Citizen @relation(fields: [citizenId], references: [id])
+  citizenId String
+  citizen   Citizen @relation(fields: [citizenId], references: [id])
+
+  citizenPhone String?
+
+  verifiedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  calls CallLog[]
 }
 
 model CallLog {
-  id         String        @id @default(uuid())
-  phone      String
-  direction  CallDirection
-  transcript String?
-  outcome    String?
-  createdAt  DateTime      @default(now())
+  id Int @id @default(autoincrement())
+
+  // Change Int to String here to match Complaint.id
+  complaintId String   
+  complaint   Complaint @relation(fields: [complaintId], references: [id])
+
+  callSid   String
+  direction CallDirection
+  outcome   String // CONFIRMED | REOPENED | NO_ANSWER | FAILED
+
+  createdAt DateTime @default(now())
 }
 
 enum ComplaintStatus {
   OPEN
-  RESOLVED_PENDING_CONFIRMATION
-  CLOSED
+  IN_PROGRESS
+  RESOLVED_PENDING_VERIFICATION
+  RESOLVED_CONFIRMED
   REOPENED
 }
 
 enum CallDirection {
   INBOUND
   OUTBOUND
+}
+
+enum ComplaintCategory {
+  GARBAGE
+  WATER
+  SEWER
+  ROAD
+  STREET_LIGHT
+  OTHER
 }

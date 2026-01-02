@@ -1,11 +1,12 @@
 import express from "express";
 import twilio from "twilio";
-import { PrismaClient } from "@prisma/client";
+import prisma from "../../prisma/client.js";
+// import { PrismaClient } from "@prisma/client";
 import { analyzeComplaint } from "../services/aiUnderstanding.service.js";
 
 const router = express.Router();
 const VoiceResponse = twilio.twiml.VoiceResponse;
-const prisma = new PrismaClient();
+// const prisma = new PrismaClient();
 router.post("/incoming-call", (req, res) => {
   const twiml = new VoiceResponse();
 
@@ -93,4 +94,68 @@ router.post("/complaint-text", async (req, res) => {
   res.type("text/xml");
   res.send(twiml.toString());
 });
+
+router.post("/outbound", (req, res) => {
+  try {
+    const twiml = new VoiceResponse();
+
+    twiml.say(
+      {
+        voice: "alice",
+        language: "en-IN",
+      },
+      "Hello. This is Aapka Sahayak calling from the Municipal Corporation. " +
+        "Your complaint has been marked as resolved. " +
+        "Please say YES if the issue is resolved, or NO if it is not."
+    );
+
+    twiml.gather({
+      input: "speech",
+      timeout: 5,
+      action: `${process.env.NGROK_URL}/voice/verify?complaintId=${req.query.complaintId}`,
+      method: "POST",
+    });
+
+    res.type("text/xml");
+    res.send(twiml.toString());
+  } catch (err) {
+    console.error("Voice outbound error:", err);
+    res.status(500).send("Voice error");
+  }
+});
+
+router.post("/verify", async (req, res) => {
+  console.log("========== VOICE VERIFY HIT ==========");
+  console.log("QUERY:", req.query);
+  console.log("BODY:", req.body);
+
+  const twiml = new VoiceResponse();
+  const speech = (req.body.SpeechResult || "").toLowerCase();
+  const { complaintId } = req.query;
+
+  if (!complaintId) {
+    console.log("❌ NO COMPLAINT ID");
+    twiml.say("Sorry, we could not identify your complaint.");
+    res.type("text/xml");
+    return res.send(twiml.toString());
+  }
+
+  console.log("✅ COMPLAINT ID:", complaintId);
+  console.log("🎙 SPEECH:", speech);
+
+  if (speech.includes("yes")) {
+    console.log("➡️ UPDATING STATUS TO CLOSED");
+    await prisma.complaint.update({
+      where: { id: complaintId },
+      data: { status: "RESOLVED_CONFIRMED" },
+    });
+  }
+
+  twiml.say("Thank you. Your complaint has been closed.");
+  res.type("text/xml");
+  res.send(twiml.toString());
+
+  console.log("========== VERIFY END ==========");
+});
+
 export default router;
