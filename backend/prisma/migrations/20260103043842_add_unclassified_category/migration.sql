@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE `complaint` MODIFY `category` ENUM('UNCLASSIFIED', 'GARBAGE', 'WATER', 'SEWER', 'ROAD', 'STREET_LIGHT', 'OTHER') NULL;

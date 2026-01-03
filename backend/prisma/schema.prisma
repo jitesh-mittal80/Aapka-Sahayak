@@ -36,21 +36,21 @@ model Complaint {
   verifiedAt DateTime?
   createdAt  DateTime  @default(now())
 
-  calls CallLog[]
+  CallLog CallLog[]
 }
 
 model CallLog {
-  id Int @id @default(autoincrement())
+  id            Int      @id @default(autoincrement())
+  callSid       String   @unique
+  complaintId   String
+  direction     CallDirection
+  speechResult  String?     // What user actually said
+  aiDecision    String?     // AI interpreted intent / yes / no
+  confidence    Float?      // AI confidence score
+  verifiedAt    DateTime?   // When citizen confirmed
+  createdAt     DateTime    @default(now())
 
-  // Change Int to String here to match Complaint.id
-  complaintId String   
-  complaint   Complaint @relation(fields: [complaintId], references: [id])
-
-  callSid   String
-  direction CallDirection
-  outcome   String // CONFIRMED | REOPENED | NO_ANSWER | FAILED
-
-  createdAt DateTime @default(now())
+  complaint     Complaint  @relation(fields: [complaintId], references: [id])
 }
 
 enum ComplaintStatus {
@@ -67,6 +67,7 @@ enum CallDirection {
 }
 
 enum ComplaintCategory {
+  UNCLASSIFIED
   GARBAGE
   WATER
   SEWER

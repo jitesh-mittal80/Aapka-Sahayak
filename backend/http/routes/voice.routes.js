@@ -58,6 +58,16 @@ router.post("/complaint-text", async (req, res) => {
         description: speechText,
         category: "UNCLASSIFIED",
         citizenId: citizen.id,
+        citizenPhone: callerPhone,
+      },
+    });
+
+    await prisma.callLog.create({
+      data: {
+        callSid: req.body.CallSid,
+        complaintId: complaint.id,
+        direction: "INBOUND",
+        speechResult: speechText,
       },
     });
 
@@ -72,6 +82,14 @@ router.post("/complaint-text", async (req, res) => {
         where: { id: complaint.id },
         data: { category: finalCategory },
       });
+      await prisma.callLog.update({
+        where: { callSid: req.body.CallSid },
+        data: { 
+          aiDecision: finalCategory, 
+          confidence: aiResult.confidence ?? null, 
+        },
+      });
+
     } catch (aiErr) {
       console.error("AI error:", aiErr.message);
     }
@@ -95,7 +113,7 @@ router.post("/complaint-text", async (req, res) => {
   res.send(twiml.toString());
 });
 
-router.post("/outbound", (req, res) => {
+router.post("/outbound", async (req, res) => {
   try {
     const twiml = new VoiceResponse();
 
@@ -122,6 +140,22 @@ router.post("/outbound", (req, res) => {
     console.error("Voice outbound error:", err);
     res.status(500).send("Voice error");
   }
+  // await prisma.callLog.create({
+  //   data: {
+  //     callSid: req.body.CallSid,
+  //     complaintId: req.query.complaintId,
+  //     direction: "OUTBOUND",
+  //     outcome: "INITIATED",
+  //   },
+  // });
+  await prisma.callLog.create({
+    data: {
+      complaintId,
+      callSid,
+      direction: "OUTBOUND",
+      aiDecision: "INITIATED",
+    },
+  });
 });
 
 router.post("/verify", async (req, res) => {
@@ -131,7 +165,7 @@ router.post("/verify", async (req, res) => {
 
   const twiml = new VoiceResponse();
   const speech = (req.body.SpeechResult || "").toLowerCase();
-  const { complaintId } = req.query;
+  const complaintId = req.query.complaintId;
 
   if (!complaintId) {
     console.log("❌ NO COMPLAINT ID");
@@ -142,6 +176,14 @@ router.post("/verify", async (req, res) => {
 
   console.log("✅ COMPLAINT ID:", complaintId);
   console.log("🎙 SPEECH:", speech);
+
+  await prisma.callLog.update({
+    where: { callSid: req.body.CallSid },
+    data: {
+      aiDecision: speech.includes("yes") ? "CONFIRMED" : "REJECTED",
+      verifiedAt: new Date(),
+    },
+  });
 
   if (speech.includes("yes")) {
     console.log("➡️ UPDATING STATUS TO CLOSED");

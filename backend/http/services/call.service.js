@@ -23,7 +23,7 @@ export async function initiateOutboundCall(complaint) {
       complaintId: complaint.id,
       callSid: call.sid,
       direction: "OUTBOUND",
-      outcome: "INITIATED",
+      aiDecision: "INITIATED",
     },
   });
 }
