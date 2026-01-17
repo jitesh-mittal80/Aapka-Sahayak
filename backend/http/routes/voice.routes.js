@@ -6,13 +6,62 @@ import { getOrCreateSession, updateSession } from "../services/session.service.j
 
 const router = express.Router();
 const VoiceResponse = twilio.twiml.VoiceResponse;
-router.post("/incoming-call", async(req, res) => {
-  const callerPhone = req.body.From;
-  // 🧠 Step 8.1 — ensure session exists
-  if (callerPhone) {
-    await getOrCreateSession(callerPhone);
-  }
+
+router.post("/incoming-call", async (req, res) => {
   const twiml = new VoiceResponse();
+  const callerPhone = req.body.From;
+
+  if (!callerPhone) {
+    twiml.say("We could not identify your phone number.");
+    res.type("text/xml");
+    return res.send(twiml.toString());
+  }
+
+  // 🧠 Step 8.1 + 8.2 — fetch session
+  const session = await getOrCreateSession(callerPhone);
+  const step = session.currentStep;
+  const context = session.context || {};
+  
+  // 🔁 STEP 8.2b — RESUME LOGIC
+  
+  // Case 1: Complaint already registered
+  
+  if (step === "VERIFICATION_COMPLETED") {
+    twiml.say(
+      "Your complaint verification is complete. Thank you for your feedback."
+    );
+    res.type("text/xml");
+    return res.send(twiml.toString());
+  }
+  
+  // Case 2: Waiting for verification
+  if (step === "AWAITING_VERIFICATION" && context.complaintId) {
+    twiml.say(
+      "Please confirm if your issue has been resolved. Say yes or no."
+    );
+    
+    twiml.gather({
+      input: "speech",
+      action: `/voice/verify?complaintId=${context.complaintId}`,
+      method: "POST",
+    });
+    
+    res.type("text/xml");
+    return res.send(twiml.toString());
+  }
+  
+  if (step === "COMPLAINT_REGISTERED" && context.complaintId) {
+    twiml.say(
+      "We already have your complaint. Our team is working on it. Thank you."
+    );
+    res.type("text/xml");
+    return res.send(twiml.toString());
+  }
+  // 🔹 Default: fresh / restart complaint flow
+  await updateSession(callerPhone, {
+    currentStep: "AWAITING_COMPLAINT",
+    context,
+  });
 
   const gather = twiml.gather({
     input: "speech",
@@ -26,7 +75,7 @@ router.post("/incoming-call", async(req, res) => {
     "Welcome to Aapka Sahayak. Please tell us your complaint after the beep."
   );
 
-  // Fallback if no speech
+  // Fallback
   twiml.say("We did not receive your complaint. Please try again.");
 
   res.type("text/xml");
@@ -132,6 +181,24 @@ router.post("/complaint-text", async (req, res) => {
 
 router.post("/outbound", async (req, res) => {
   try {
+    const complaintId = req.query.complaintId;
+    const complaint = await prisma.complaint.findUnique({
+      where: { id: complaintId },
+      select: { citizenPhone: true },
+    });
+    if (!complaint) {
+      throw new Error("Complaint not found");
+    }
+    
+    const callerPhone = complaint.citizenPhone;
+    
+    await updateSession(callerPhone, {
+      currentStep: "AWAITING_VERIFICATION",
+      context: {
+        complaintId,
+      },
+    });
+
     const twiml = new VoiceResponse();
 
     twiml.say(
@@ -186,6 +253,7 @@ router.post("/verify", async (req, res) => {
       context: {
         ...session.context,
         verificationResult: speech.includes("yes") ? "CONFIRMED" : "REJECTED",
+        completedAt: new Date().toISOString(),
       },
     });
   }
