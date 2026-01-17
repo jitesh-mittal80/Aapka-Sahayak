@@ -1,13 +1,17 @@
 import express from "express";
 import twilio from "twilio";
 import prisma from "../../prisma/client.js";
-// import { PrismaClient } from "@prisma/client";
 import { analyzeComplaint } from "../services/aiUnderstanding.service.js";
+import { getOrCreateSession, updateSession } from "../services/session.service.js";
 
 const router = express.Router();
 const VoiceResponse = twilio.twiml.VoiceResponse;
-// const prisma = new PrismaClient();
-router.post("/incoming-call", (req, res) => {
+router.post("/incoming-call", async(req, res) => {
+  const callerPhone = req.body.From;
+  // 🧠 Step 8.1 — ensure session exists
+  if (callerPhone) {
+    await getOrCreateSession(callerPhone);
+  }
   const twiml = new VoiceResponse();
 
   const gather = twiml.gather({
@@ -33,8 +37,15 @@ router.post("/complaint-text", async (req, res) => {
   const twiml = new VoiceResponse();
 
   try {
-    const speechText = req.body.SpeechResult;
     const callerPhone = req.body.From;
+    // 🧠 Step 8.1 — session fetch
+    const session = await getOrCreateSession(callerPhone);
+
+    // attach to request (mental model)
+    const sessionContext = session.context || {};
+    let sessionStep = session.currentStep || "START";
+
+    const speechText = req.body.SpeechResult;
 
     if (!speechText) {
       twiml.say("Sorry, I could not understand your complaint.");
@@ -61,6 +72,8 @@ router.post("/complaint-text", async (req, res) => {
         citizenPhone: callerPhone,
       },
     });
+    sessionContext.complaintId = complaint.id;
+    sessionStep = "COMPLAINT_REGISTERED";
 
     await prisma.callLog.create({
       data: {
@@ -100,6 +113,10 @@ router.post("/complaint-text", async (req, res) => {
         .replace("_", " ")
         .toLowerCase()}. Our team will take action shortly.`
     );
+    await updateSession(callerPhone, {
+      currentStep: sessionStep,
+      context: sessionContext,
+    });
   } catch (err) {
     console.error("Webhook crash:", err.message);
 
@@ -140,14 +157,6 @@ router.post("/outbound", async (req, res) => {
     console.error("Voice outbound error:", err);
     res.status(500).send("Voice error");
   }
-  // await prisma.callLog.create({
-  //   data: {
-  //     callSid: req.body.CallSid,
-  //     complaintId: req.query.complaintId,
-  //     direction: "OUTBOUND",
-  //     outcome: "INITIATED",
-  //   },
-  // });
   await prisma.callLog.create({
     data: {
       complaintId,
@@ -162,10 +171,24 @@ router.post("/verify", async (req, res) => {
   console.log("========== VOICE VERIFY HIT ==========");
   console.log("QUERY:", req.query);
   console.log("BODY:", req.body);
-
+  
   const twiml = new VoiceResponse();
+
+  const callerPhone = req.body.From;
   const speech = (req.body.SpeechResult || "").toLowerCase();
   const complaintId = req.query.complaintId;
+
+  if (callerPhone) {
+    const session = await getOrCreateSession(callerPhone)
+
+    await updateSession(callerPhone, {
+      currentStep: "VERIFICATION_COMPLETED",
+      context: {
+        ...session.context,
+        verificationResult: speech.includes("yes") ? "CONFIRMED" : "REJECTED",
+      },
+    });
+  }
 
   if (!complaintId) {
     console.log("❌ NO COMPLAINT ID");

@@ -75,3 +75,12 @@ enum ComplaintCategory {
   STREET_LIGHT
   OTHER
 }
+
+model CallerSession {
+  id            String   @id @default(uuid())
+  callerId      String   @unique
+  currentStep   String?
+  context       Json?
+  lastActiveAt  DateTime @updatedAt
+  createdAt     DateTime @default(now())
+}
