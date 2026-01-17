@@ -1,0 +1,91 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Aapka Sahayak Admin Portal Design System */
+
+@layer base {
+  :root {
+    --background: 220 20% 97%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 46%;
+
+    --accent: 220 14% 96%;
+    --accent-foreground: 222 47% 11%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 217 91% 60%;
+
+    --radius: 0.5rem;
+
+    /* Status colors */
+    --status-pending: 45 93% 47%;
+    --status-pending-foreground: 45 93% 20%;
+    --status-pending-bg: 48 96% 89%;
+    
+    --status-progress: 217 91% 60%;
+    --status-progress-foreground: 217 91% 30%;
+    --status-progress-bg: 214 95% 93%;
+    
+    --status-verified: 142 76% 36%;
+    --status-verified-foreground: 142 76% 20%;
+    --status-verified-bg: 143 76% 90%;
+
+    /* Navbar */
+    --navbar: 0 0% 100%;
+    --navbar-foreground: 222 47% 11%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+}
+
+@layer components {
+  .status-badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  
+  .status-pending {
+    background-color: hsl(var(--status-pending-bg));
+    color: hsl(var(--status-pending-foreground));
+    border: 1px solid hsl(var(--status-pending) / 0.3);
+  }
+  
+  .status-progress {
+    background-color: hsl(var(--status-progress-bg));
+    color: hsl(var(--status-progress-foreground));
+    border: 1px solid hsl(var(--status-progress) / 0.3);
+  }
+  
+  .status-verified {
+    background-color: hsl(var(--status-verified-bg));
+    color: hsl(var(--status-verified-foreground));
+    border: 1px solid hsl(var(--status-verified) / 0.3);
+  }
+}
