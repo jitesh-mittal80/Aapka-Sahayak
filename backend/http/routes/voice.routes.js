@@ -3,6 +3,7 @@ import twilio from "twilio";
 import prisma from "../../prisma/client.js";
 import { analyzeComplaint } from "../services/aiUnderstanding.service.js";
 import { getOrCreateSession, updateSession } from "../services/session.service.js";
+import { generateSessionSummary } from "../services/sessionSummary.service.js";
 
 const router = express.Router();
 const VoiceResponse = twilio.twiml.VoiceResponse;
@@ -22,6 +23,42 @@ router.post("/incoming-call", async (req, res) => {
   const step = session.currentStep;
   const context = session.context || {};
   
+  // 🧹 STEP 8.3 — SESSION TTL (24 hours)
+  const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
+  const now = Date.now();
+
+  if (
+    session.lastActiveAt &&
+    now - new Date(session.lastActiveAt).getTime() > TWENTY_FOUR_HOURS
+  ) 
+  {
+    const hadSummary = !!context.summary;
+
+    await updateSession(callerPhone, {
+      currentStep: "START",
+      context: {},
+    });
+
+    if (hadSummary) {
+      twiml.say(
+        "Welcome back. I see that your last complaint was already resolved."
+      );
+    } 
+
+    const gather = twiml.gather({
+      input: "speech",
+      action: "/voice/complaint-text",
+      method: "POST",
+      language: "en-IN",
+      speechTimeout: "auto",
+    });
+    gather.say("Please tell us your complaint after the beep.");
+
+    res.type("text/xml");
+    return res.send(twiml.toString());
+  }
+
+
   // 🔁 STEP 8.2b — RESUME LOGIC
   
   // Case 1: Complaint already registered
@@ -217,21 +254,22 @@ router.post("/outbound", async (req, res) => {
       action: `${process.env.NGROK_URL}/voice/verify?complaintId=${req.query.complaintId}`,
       method: "POST",
     });
+    await prisma.callLog.create({
+      data: {
+        complaintId,
+        callSid: req.body.CallSid ?? null,
+        direction: "OUTBOUND",
+        aiDecision: "INITIATED",
+      },
+    });
 
     res.type("text/xml");
     res.send(twiml.toString());
-  } catch (err) {
+  } 
+  catch (err) {
     console.error("Voice outbound error:", err);
     res.status(500).send("Voice error");
   }
-  await prisma.callLog.create({
-    data: {
-      complaintId,
-      callSid,
-      direction: "OUTBOUND",
-      aiDecision: "INITIATED",
-    },
-  });
 });
 
 router.post("/verify", async (req, res) => {
@@ -287,6 +325,7 @@ router.post("/verify", async (req, res) => {
   twiml.say("Thank you. Your complaint has been closed.");
   res.type("text/xml");
   res.send(twiml.toString());
+  generateSessionSummary(callerPhone).catch(console.error);
 
   console.log("========== VERIFY END ==========");
 });
