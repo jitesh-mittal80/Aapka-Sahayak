@@ -12,6 +12,8 @@ import authRouters from "./http/routes/auth.routes.js";
 import complaintRoutes from "./http/routes/complaint.routes.js";
 import adminComplaintRoutes from "./http/routes/adminComplaint.routes.js";
 import adminCallRoutes from "./http/routes/adminCall.routes.js";
+import adminCitizenRoutes from "./http/routes/adminCitizen.routes.js";
+import adminCallLogRoutes from "./http/routes/adminCallLog.routes.js";
 
 dotenv.config();
 
@@ -35,6 +37,8 @@ app.use("/api/auth", authRouters);
 app.use("/api/complaints", complaintRoutes);
 app.use("/api/admin", adminComplaintRoutes);
 app.use("/api/admin", adminCallRoutes);
+app.use("/api/admin", adminCitizenRoutes);
+app.use("/api/admin", adminCallLogRoutes);
 
 // Server 
 const server = http.createServer(app);
