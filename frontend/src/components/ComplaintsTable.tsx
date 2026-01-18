@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Phone, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ComplaintStatus, Complaint } from "@/pages/Dashboard";
 import {
   Table,
   TableBody,
@@ -11,22 +12,26 @@ import {
 } from '@/components/ui/table';
 import StatusBadge from './StatusBadge';
 
-export interface Complaint {
-  id: string;
-  type: 'Voice' | 'Text';
-  status: 'Pending' | 'In Progress' | 'Verified';
-  phoneNumber: string;
-  createdTime: string;
-}
+// export interface Complaint {
+//   id: string;
+//   type: 'Voice' | 'Text';
+//   status: 'Pending' | 'In Progress' | 'Verified';
+//   phoneNumber: string;
+//   createdTime: string;
+// }
 
 interface ComplaintsTableProps {
   complaints: Complaint[];
+  refreshComplaints: () => void;
 }
 
-const ComplaintsTable = ({ complaints }: ComplaintsTableProps) => {
-  const [loadingId, setLoadingId] = useState<string | null>(null);
+const ComplaintsTable = ({
+  complaints,
+  refreshComplaints,
+}: ComplaintsTableProps) => {
+  const [loadingId, setLoadingId] = useState<number | null>(null);
 
-  const handleTriggerCall = async (complaintId: string) => {
+  const handleTriggerCall = async (complaintId: number) => {
     setLoadingId(complaintId);
     console.log(`Triggering verification call for complaint: ${complaintId}`);
     
@@ -37,13 +42,31 @@ const ComplaintsTable = ({ complaints }: ComplaintsTableProps) => {
     console.log(`Verification call triggered successfully for: ${complaintId}`);
   };
 
+  const updateStatus = async (
+  id: number,
+  status: ComplaintStatus
+  ) => {
+    await fetch(
+      `http://localhost:5000/api/admin/complaints/${id}/status`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-key": "supersecretadmin",
+        },
+        body: JSON.stringify({ status }),
+      }
+    );
+    refreshComplaints();
+};  
+
   return (
     <div className="overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow className="border-b border-border">
             <TableHead className="font-semibold text-foreground">Complaint ID</TableHead>
-            <TableHead className="font-semibold text-foreground">Type</TableHead>
+            <TableHead className="font-semibold text-foreground">Category</TableHead>
             <TableHead className="font-semibold text-foreground">Status</TableHead>
             <TableHead className="font-semibold text-foreground">Phone Number</TableHead>
             <TableHead className="font-semibold text-foreground">Created Time</TableHead>
@@ -54,12 +77,36 @@ const ComplaintsTable = ({ complaints }: ComplaintsTableProps) => {
           {complaints.map((complaint) => (
             <TableRow key={complaint.id} className="border-b border-border/50 hover:bg-muted/30">
               <TableCell className="font-medium text-foreground">{complaint.id}</TableCell>
-              <TableCell className="text-muted-foreground">{complaint.type}</TableCell>
+              <TableCell className="text-muted-foreground">{complaint.category}</TableCell>
               <TableCell>
-                <StatusBadge status={complaint.status} />
+                <div className="flex items-center gap-3">
+                  <StatusBadge status={complaint.status} />
+                  <select
+                    value={complaint.status}
+                    onChange={(e) =>
+                      updateStatus(
+                        complaint.id,
+                        e.target.value as ComplaintStatus
+                      )
+                    }
+                    className="border rounded px-2 py-1 text-sm"
+                  >
+                    {[
+                      "OPEN",
+                      "IN_PROGRESS",
+                      "RESOLVED_PENDING_VERIFICATION",
+                      "RESOLVED_CONFIRMED",
+                      "REOPENED",
+                    ].map((status) => (
+                      <option key={status} value={status}>
+                        {status.split("_").join(" ")}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </TableCell>
-              <TableCell className="text-muted-foreground font-mono">{complaint.phoneNumber}</TableCell>
-              <TableCell className="text-muted-foreground">{complaint.createdTime}</TableCell>
+              <TableCell className="text-muted-foreground font-mono">{complaint.citizenPhone}</TableCell>
+              <TableCell className="text-muted-foreground">{complaint.createdAt}</TableCell>
               <TableCell className="text-right">
                 <Button
                   size="sm"

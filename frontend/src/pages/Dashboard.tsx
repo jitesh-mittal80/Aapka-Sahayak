@@ -1,20 +1,54 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from "react";
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Navbar from '@/components/Navbar';
 import ComplaintsTable from '@/components/ComplaintsTable';
-import { mockComplaints } from '@/data/mockComplaints';
 import { useAuth } from '@/contexts/AuthContext';
+
+export type ComplaintStatus =
+  | "OPEN"
+  | "IN_PROGRESS"
+  | "RESOLVED_PENDING_VERIFICATION"
+  | "RESOLVED_CONFIRMED"
+  | "REOPENED";
+
+export interface Complaint {
+  id: number;
+  category: "Voice" | "Text";
+  status: ComplaintStatus;
+  citizenPhone: string;
+  createdAt: string;
+}
 
 const Dashboard = () => {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const [complaints, setComplaints] = useState<Complaint[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchComplaints = async () => {
+    setLoading(true);
+    const res = await fetch(
+      "http://localhost:5000/api/admin/complaints",
+      {
+        headers: {
+          "x-admin-key": "supersecretadmin",
+        },
+      }
+    );
+    const json = await res.json();
+    setComplaints(json.data);
+    setLoading(false);
+  };
 
   useEffect(() => {
     if (!isAuthenticated) {
-      navigate('/');
+      navigate("/");
+    } else {
+      fetchComplaints();
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated]);
+
 
   if (!isAuthenticated) {
     return null;
@@ -35,7 +69,7 @@ const Dashboard = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ComplaintsTable complaints={mockComplaints} />
+            <ComplaintsTable complaints={complaints} refreshComplaints={fetchComplaints} />
           </CardContent>
         </Card>
       </main>
