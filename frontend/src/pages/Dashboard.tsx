@@ -13,7 +13,7 @@ export type ComplaintStatus =
   | "REOPENED";
 
 export interface Complaint {
-  id: number;
+  id: string;
   category: "Voice" | "Text";
   status: ComplaintStatus;
   citizenPhone: string;

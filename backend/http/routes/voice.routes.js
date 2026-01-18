@@ -254,14 +254,14 @@ router.post("/outbound", async (req, res) => {
       action: `${process.env.NGROK_URL}/voice/verify?complaintId=${req.query.complaintId}`,
       method: "POST",
     });
-    await prisma.callLog.create({
-      data: {
-        complaintId,
-        callSid: req.body.CallSid ?? null,
-        direction: "OUTBOUND",
-        aiDecision: "INITIATED",
-      },
-    });
+    // await prisma.callLog.create({
+    //   data: {
+    //     complaintId,
+    //     callSid: req.body.CallSid ?? null,
+    //     direction: "OUTBOUND",
+    //     aiDecision: "INITIATED",
+    //   },
+    // });
 
     res.type("text/xml");
     res.send(twiml.toString());

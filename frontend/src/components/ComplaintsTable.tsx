@@ -29,21 +29,32 @@ const ComplaintsTable = ({
   complaints,
   refreshComplaints,
 }: ComplaintsTableProps) => {
-  const [loadingId, setLoadingId] = useState<number | null>(null);
+  const [loadingId, setLoadingId] = useState<string | null>(null);
 
-  const handleTriggerCall = async (complaintId: number) => {
-    setLoadingId(complaintId);
-    console.log(`Triggering verification call for complaint: ${complaintId}`);
+  const handleTriggerCall = async (complaintId: string) => {
+    try {
+      setLoadingId(complaintId);
     
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
+      await fetch(
+        `http://localhost:5000/api/complaints/${complaintId}/mark-resolved`,
+        {
+          method: "POST",
+          headers: {
+            "x-admin-key": "supersecretadmin",
+          },
+        }
+      );
     
-    setLoadingId(null);
-    console.log(`Verification call triggered successfully for: ${complaintId}`);
+      refreshComplaints();
+    } catch (err) {
+      console.error("Trigger call failed", err);
+    } finally {
+      setLoadingId(null);
+    }
   };
 
   const updateStatus = async (
-  id: number,
+  id: string,
   status: ComplaintStatus
   ) => {
     await fetch(
