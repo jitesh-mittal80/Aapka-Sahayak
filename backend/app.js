@@ -29,6 +29,10 @@ app.use(
     credentials: true,
   })
 );
+app.use("/api/admin", (req, res, next) => {
+  res.setHeader("Cache-Control", "no-store");
+  next();
+});
 
 //  Routes 
 app.use("/twilio", twilioRoutes);
@@ -39,6 +43,7 @@ app.use("/api/admin", adminComplaintRoutes);
 app.use("/api/admin", adminCallRoutes);
 app.use("/api/admin", adminCitizenRoutes);
 app.use("/api/admin", adminCallLogRoutes);
+app.use("/api/auth", authRouters);
 
 // Server 
 const server = http.createServer(app);

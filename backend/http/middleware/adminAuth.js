@@ -1,9 +1,19 @@
-export const adminAuth = (req, res, next) => {
-  const isAdmin = req.headers["x-admin-key"] === process.env.ADMIN_KEY;
+import jwt from "jsonwebtoken";
 
-  if (!isAdmin) {
-    return res.status(403).json({ message: "Admin access denied" });
+export const adminAuth = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader) {
+    return res.status(401).json({ message: "Token missing" });
   }
 
-  next();
+  const token = authHeader.split(" ")[1];
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.admin = decoded; // { id, email, role }
+    next();
+  } catch (error) {
+    return res.status(401).json({ message: "Invalid token" });
+  }
 };

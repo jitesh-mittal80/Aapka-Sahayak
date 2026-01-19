@@ -1,9 +1,12 @@
-import { Router } from "express";
-import { postSignup } from "../controllers/auth.controller.js";
-const router = Router();
+import express from "express";
+import {
+  postSignup,
+  adminLogin,
+} from "../controllers/auth.controller.js";
+
+const router = express.Router();
 
 router.post("/signup", postSignup);
-// router.post("/signin", );
-// router.get("/me",);
+router.post("/admin/login", adminLogin);
 
 export default router;

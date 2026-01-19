@@ -11,14 +11,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import StatusBadge from './StatusBadge';
-
-// export interface Complaint {
-//   id: string;
-//   type: 'Voice' | 'Text';
-//   status: 'Pending' | 'In Progress' | 'Verified';
-//   phoneNumber: string;
-//   createdTime: string;
-// }
+import api from "@/lib/api";
 
 interface ComplaintsTableProps {
   complaints: Complaint[];
@@ -32,22 +25,14 @@ const ComplaintsTable = ({
   const [loadingId, setLoadingId] = useState<string | null>(null);
 
   const handleTriggerCall = async (complaintId: string) => {
-    try {
+    try{
       setLoadingId(complaintId);
-    
-      await fetch(
-        `http://localhost:5000/api/complaints/${complaintId}/mark-resolved`,
-        {
-          method: "POST",
-          headers: {
-            "x-admin-key": "supersecretadmin",
-          },
-        }
+      await api.post(
+        `/api/complaints/${complaintId}/mark-resolved`
       );
-    
       refreshComplaints();
     } catch (err) {
-      console.error("Trigger call failed", err);
+      console.error("Failed to trigger call", err);
     } finally {
       setLoadingId(null);
     }
@@ -57,19 +42,16 @@ const ComplaintsTable = ({
   id: string,
   status: ComplaintStatus
   ) => {
-    await fetch(
-      `http://localhost:5000/api/admin/complaints/${id}/status`,
-      {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          "x-admin-key": "supersecretadmin",
-        },
-        body: JSON.stringify({ status }),
-      }
-    );
-    refreshComplaints();
-};  
+    try{
+      await api.patch(
+        `/api/admin/complaints/${id}/status`,
+        { status }
+      );
+      refreshComplaints();
+    } catch (err) {
+      console.error("Failed to update status", err);
+    }
+  };  
 
   return (
     <div className="overflow-x-auto">

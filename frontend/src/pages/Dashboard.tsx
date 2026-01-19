@@ -8,6 +8,8 @@ import ComplaintsTable from '@/components/ComplaintsTable';
 import CitizensTable from '@/components/CitizensTable';
 import CallLogsTable from '@/components/CallLogsTable';
 import { Citizen, CallLog } from "@/types/admin";
+import api from "@/lib/api";
+import { useLocation } from "react-router-dom";
 
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -30,58 +32,51 @@ const Dashboard = () => {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('complaints');
-  const [complaints, setComplaints] = useState<Complaint[]>([]);
+  // const [complaints, setComplaints] = useState<Complaint[]>([]);
+  const [complaints, setComplaints] = useState<any[]>([]);
   const [citizens, setCitizens] = useState<Citizen[]>([]);
   const [callLogs, setCallLogs] = useState<CallLog[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchComplaints = async () => {
-    setLoading(true);
-    const res = await fetch(
-      "http://localhost:5000/api/admin/complaints",
-      {
-        headers: {
-          "x-admin-key": "supersecretadmin",
-        },
-      }
-    );
-    const json = await res.json();
-    setComplaints(json.data);
-    setLoading(false);
+    try {
+      setLoading(true);
+      const res = await api.get("/api/admin/complaints");
+      setComplaints(res.data.data ?? []);
+    } catch (err) {
+      console.error("Failed to fetch complaints", err);
+    } finally {
+      setLoading(false);
+    }
   };
-
   const fetchCitizens = async () => {
-    const res = await fetch("http://localhost:5000/api/admin/citizens", {
-      headers: { "x-admin-key": "supersecretadmin" },
-    });
-    setCitizens(await res.json());
+    const res = await api.get("/api/admin/citizens");
+    setCitizens(res.data ?? []);
   };
 
   const fetchCallLogs = async () => {
-    const res = await fetch("http://localhost:5000/api/admin/call-logs", {
-      headers: { "x-admin-key": "supersecretadmin" },
-    });
-    setCallLogs(await res.json());
+    const res = await api.get("/api/admin/call-logs");
+    setCallLogs(res.data ?? []);
   }
 
-  useEffect(() => {
-    if (!isAuthenticated) {
-      navigate("/");
-    } else {
-      fetchComplaints();
-    }
-  }, [isAuthenticated]);
+  // useEffect(() => {
+  //   // if (loading) return;
+    
+  //   if (!isAuthenticated) {
+  //     navigate("/login");
+  //     return;
+  //   }
+
+  //   fetchComplaints();
+  // }, [loading, isAuthenticated]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
 
-      if (activeTab === "citizens") fetchCitizens();
-      if (activeTab === "calllogs") fetchCallLogs();
-  }, [activeTab]);
-
-  if (!isAuthenticated) {
-    return null;
-  }
+    if (activeTab === "complaints") fetchComplaints();
+    if (activeTab === "citizens") fetchCitizens();
+    if (activeTab === "calllogs") fetchCallLogs();
+  }, [activeTab, isAuthenticated]);
 
   const getTabContent = () => {
     switch (activeTab) {
@@ -113,6 +108,7 @@ const Dashboard = () => {
   };
 
   const tabContent = getTabContent();
+  const location = useLocation();
 
   return (
     <SidebarProvider>
